@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>That Day — Webcomic</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background: #000;
+    color: #fff;
+    font-family: system-ui, sans-serif;
+  }
+  a { color: #9cf; }
+
+  /* TAB BAR */
+  .tabs {
+    display: flex;
+    gap: 18px;
+    padding: 12px 20px;
+    background: #000;
+    border-bottom: 1px solid #222;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 15px;
+    cursor: pointer;
+    padding: 6px 0;
+    opacity: 0.6;
+    transition: opacity .2s;
+  }
+  .tab-btn:hover {
+    opacity: 1;
+  }
+  .tab-btn.active {
+    opacity: 1;
+    border-bottom: 2px solid #fff;
+  }
+
+  .section { display: none; padding: 20px; }
+  .section.active { display: block; }
+
+  .chapter-content img {
+    max-width: 100%;
+    display: block;
+    margin: 10px 0;
+  }
+
+  .upload-box { margin-top: 20px; border-top: 1px solid #333; padding-top: 10px; }
+</style>
+</head>
+<body>
+
+<!-- TAB BAR -->
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="home">Home</button>
+  <button class="tab-btn" data-tab="c1">Still love you</button>
+  <button class="tab-btn" data-tab="c2">Over the moon</button>
+  <button class="tab-btn" data-tab="c3">Unslept</button>
+  <button class="tab-btn" data-tab="about">About</button>
+</nav>
+
+<!-- HOME SECTION -->
+<div class="section active" id="home">
+  <h1>That Day — Webcomic</h1>
+  <p>Welcome to the official reader for the webcomic <strong>That Day</strong>. Use the tabs above to navigate through chapters.</p>
+</div>
+
+<!-- CHAPTER 1 -->
+<div class="section" id="c1">
+  <h2>Still love you</h2>
+  <div id="chapter1-images" class="chapter-content"></div>
+  <audio id="chapter1-audio" controls style="margin-top: 15px; width: 100%;"></audio>
+
+  <div class="upload-box" id="admin-box-1" style="display:none;">
+    <h3>Upload Images</h3>
+    <input type="file" id="upload-img-1" multiple accept="image/*"><br><br>
+    <h3>Upload Music</h3>
+    <input type="file" id="upload-audio-1" accept="audio/*">
+  </div>
+</div>
+
+<!-- CHAPTER 2 -->
+<div class="section" id="c2">
+  <h2>Over the moon</h2>
+  <div id="chapter2-images" class="chapter-content"></div>
+  <audio id="chapter2-audio" controls style="margin-top: 15px; width: 100%;"></audio>
+
+  <div class="upload-box" id="admin-box-2" style="display:none;">
+    <h3>Upload Images</h3>
+    <input type="file" id="upload-img-2" multiple accept="image/*"><br><br>
+    <h3>Upload Music</h3>
+    <input type="file" id="upload-audio-2" accept="audio/*">
+  </div>
+</div>
+
+<!-- CHAPTER 3 -->
+<div class="section" id="c3">
+  <h2>Unslept</h2>
+  <div id="chapter3-images" class="chapter-content"></div>
+  <audio id="chapter3-audio" controls style="margin-top: 15px; width: 100%;"></audio>
+
+  <div class="upload-box" id="admin-box-3" style="display:none;">
+    <h3>Upload Images</h3>
+    <input type="file" id="upload-img-3" multiple accept="image/*"><br><br>
+    <h3>Upload Music</h3>
+    <input type="file" id="upload-audio-3" accept="audio/*">
+  </div>
+</div>
+
+<!-- ABOUT -->
+<div class="section" id="about">
+  <h2>About</h2>
+  <p>"That Day" is a webcomic hosted on GitHub Pages. Only the creator may upload images and music using the admin login.</p>
+</div>
+
+<script>
+// =========================
+// ADMIN PASSWORD
+// =========================
+const ADMIN_PASSWORD = "changeme"; // CHANGE BEFORE UPLOADING TO GITHUB
+let isAdmin = false;
+
+// Admin Login (Ctrl + L)
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey && e.key === "l") {
+    const pass = prompt("Enter admin password:");
+    if (pass === ADMIN_PASSWORD) {
+      isAdmin = true;
+      document.querySelectorAll("#admin-box-1, #admin-box-2, #admin-box-3").forEach(el => el.style.display = "block");
+      alert("Admin mode activated.");
+    } else {
+      alert("Incorrect password.");
+    }
+  }
+});
+
+// TAB SWITCHING
+const tabs = document.querySelectorAll('.tab-btn');
+const sections = document.querySelectorAll('.section');
+
+tabs.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabs.forEach(b => b.classList.remove('active'));
+    sections.forEach(s => s.classList.remove('active'));
+
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+// IMAGE + AUDIO SAVING PER CHAPTER
+function saveImages(input, storageKey, containerId) {
+  const files = input.files;
+  const arr = [];
+
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      arr.push(reader.result);
+      localStorage.setItem(storageKey, JSON.stringify(arr));
+      loadImages(storageKey, containerId);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImages(storageKey, containerId) {
+  const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
+  const box = document.getElementById(containerId);
+  box.innerHTML = "";
+  data.forEach(src => {
+    const img = document.createElement("img");
+    img.src = src;
+    box.appendChild(img);
+  });
+}
+
+function saveAudio(input, storageKey, audioId) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    localStorage.setItem(storageKey, reader.result);
+    loadAudio(storageKey, audioId);
+  };
+  reader.readAsDataURL(file);
+}
+
+function loadAudio(storageKey, audioId) {
+  const src = localStorage.getItem(storageKey);
+  if (src) document.getElementById(audioId).src = src;
+}
+
+// HOOK INPUTS
+// Chapter 1
+upload-img-1.onchange = () => saveImages(upload-img-1, "chapter1-images", "chapter1-images");
+upload-audio-1.onchange = () => saveAudio(upload-audio-1, "chapter1-audio", "chapter1-audio");
+
+// Chapter 2
+upload-img-2.onchange = () => saveImages(upload-img-2, "chapter2-images", "chapter2-images");
+upload-audio-2.onchange = () => saveAudio(upload-audio-2, "chapter2-audio", "chapter2-audio");
+
+// Chapter 3
+upload-img-3.onchange = () => saveImages(upload-img-3, "chapter3-images", "chapter3-images");
+upload-audio-3.onchange = () => saveAudio(upload-audio-3, "chapter3-audio", "chapter3-audio");
+
+// LOAD ALL CONTENT ON START
+loadImages("chapter1-images", "chapter1-images");
+loadImages("chapter2-images", "chapter2-images");
+loadImages("chapter3-images", "chapter3-images");
+
+loadAudio("chapter1-audio", "chapter1-audio");
+loadAudio("chapter2-audio", "chapter2-audio");
+loadAudio("chapter3-audio", "chapter3-audio");
+</script>
+
+</body>
+</html><!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>That Day — Webcomic</title>
+  <meta name="description" content="That Day — webcomic. Minimal reader with chapter music. Admin-only uploads via password. Ready for GitHub Pages."/>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      color: #fff;
+      font-family: system-ui, sans-serif;
+    }
+
+    a { color: #9cf; }
+
+    /* TAB BAR */
+    .tabs {
+      display: flex;
+      gap: 18px;
+      padding: 12px 20px;
+      background: #000;
+      border-bottom: 1px solid #222;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 15px;
+      cursor: pointer;
+      padding: 6px 0;
+      opacity: 0.6;
+      transition: opacity .2s;
+    }
+
+    .tab-btn:hover { opacity: 1; }
+
+    .tab-btn.active {
+      opacity: 1;
+      border-bottom: 2px solid #fff;
+    }
+
+    .chapter-content img { max-width: 100%; }
+    #chapter-view { padding: 20px; }
+  </style>
+</head>
+<body>
+
+  <!-- TAB NAVIGATION -->
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="home">Home</button>
+    <button class="tab-btn" data-tab="c1">Still love you</button>
+    <button class="tab-btn" data-tab="c2">Over the moon</button>
+    <button class="tab-btn" data-tab="c3">Unslept</button>
+    <button class="tab-btn" data-tab="about">About</button>
+  </nav>
+
+  <main id="main">
+    <!-- HOME -->
+    <section id="home">
+      <h1 style="margin:20px 0 4px 20px">That Day</h1>
+      <p style="margin:0 0 20px 20px;color:#bbb">A minimal webcomic reader template with music per chapter.</p>
+
+      <div style="margin:20px" id="homeThumbs"></div>
+    </section>
+
+    <!-- CHAPTER VIEW -->
+    <section id="chapter-view" hidden>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <h2 id="chapterTitle" style="margin:0"></h2>
+          <div class="meta" id="chapterMeta" style="color:#888"></div>
+        </div>
+        <div id="musicBox"></div>
+      </div>
+
+      <div style="margin-top:14px" id="pageContainer"></div>
+
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button id="prevBtn">Previous</button>
+        <button id="nextBtn">Next</button>
+        <button id="openReader">Open Page in Reader</button>
+        <button id="backHome">Back</button>
+      </div>
+
+      <!-- READER MODAL -->
+      <div id="readerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:20px;z-index:999">
+        <div style="max-width:980px;width:100%;background:#fff;padding:12px;border-radius:8px;color:#000">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div id="readerTitle"></div>
+            <div><button id="closeReader">Close</button></div>
+          </div>
+          <div style="margin-top:8px;text-align:center"><img id="readerImg" src="" style="max-width:100%;height:auto;border-radius:6px"/></div>
+        </div>
+      </div>
+
+      <!-- ADMIN UPLOAD -->
+      <div id="adminArea" style="margin-top:18px;display:none">
+        <h3>Admin Upload</h3>
+        <label>Choose chapter:
+          <select id="adminChapterSelect">
+            <option value="c1">Still love you</option>
+            <option value="c2">Over the moon</option>
+            <option value="c3">Unslept</option>
+          </select>
+        </label>
+        <br><br>
+        <label>Upload images:
+          <input type="file" id="imageUpload" accept="image/*" multiple>
+        </label>
+        <br><br>
+        <label>Upload music:
+          <input type="file" id="musicUpload" accept="audio/*">
+        </label>
+        <br><br>
+        <button id="saveUploads">Save</button>
+        <button id="clearChapter">Clear chapter</button>
+        <button id="logoutBtn">Logout</button>
+      </div>
+
+    </section>
+
+    <!-- ABOUT PAGE -->
+    <section id="about" hidden>
+      <h2 style="margin:20px 0 4px 20px">About</h2>
+      <p style="margin:0 0 20px 20px;color:#bbb">This is a single-file webcomic reader that stores images & audio in localStorage. Only the admin can upload. Perfect for GitHub Pages.</p>
+    </section>
+  </main>
+
+  <script>
+    /* PASSWORD */
+    const ADMIN_PASSWORD = "changeme"; // CHANGE THIS
+
+    /* CHAPTERS */
+    const CHAPTERS = [
+      { id: 'c1', slug: 'chapter-1', title: 'Still love you', pages: [], musicKey: 'music_c1' },
+      { id: 'c2', slug: 'chapter-2', title: 'Over the moon', pages: [], musicKey: 'music_c2' },
+      { id: 'c3', slug: 'chapter-3', title: 'Unslept', pages: [], musicKey: 'music_c3' }
+    ];
+
+    const STORAGE_KEY = 'thatday_v1';
+
+    const $ = s => document.querySelector(s);
+    const id = s => document.getElementById(s);
+
+    function loadState(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : CHAPTERS;
+    }
+    function saveState(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+
+    let state = loadState();
+
+    /* TAB SYSTEM */
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const t = btn.dataset.tab;
+        if (t === 'home') showHome();
+        if (t === 'c1') showChapter('c1');
+        if (t === 'c2') showChapter('c2');
+        if (t === 'c3') showChapter('c3');
+        if (t === 'about') showAbout();
+      });
+    });
+
+    /* RENDER HOME */
+    function showHome(){
+      id('home').hidden = false;
+      id('chapter-view').hidden = true;
+      id('about').hidden = true;
+
+      const out = id('homeThumbs');
+      out.innerHTML = '';
+
+      state.forEach(ch => {
+        const box = document.createElement('div');
+        box.style.marginBottom = '20px';
+        box.style.cursor = 'pointer';
+
+        const img = document.createElement('img');
+        img.style.maxWidth = '260px';
+        img.style.display = 'block';
+        img.style.borderRadius = '6px';
+        img.src = ch.pages[0] || placeholder();
+
+        const t = document.createElement('div');
+        t.innerHTML = `<strong>${ch.title}</strong><br><span style='color:#888'>${ch.pages.length} pages</span>`;
+        t.style.marginTop = '6px';
+
+        box.appendChild(img);
+        box.appendChild(t);
+        box.onclick = () => showChapter(ch.id);
+
+        out.appendChild(box);
+      });
+    }
+
+    /* RENDER ABOUT */
+    function showAbout(){
+      id('home').hidden = true;
+      id('chapter-view').hidden = true;
+      id('about').hidden = false;
+    }
+
+    /* CHAPTER VIEW */
+    let current = { chapterId: null, index: 0 };
+
+    function showChapter(chId){
+      id('home').hidden=true;
+      id('chapter-view').hidden=false;
+      id('about').hidden=true;
+
+      const ch = state.find(x => x.id === chId);
+      id('chapterTitle').textContent = ch.title;
+      id('chapterMeta').textContent = `${ch.pages.length} pages`;
+
+      const musicBox = id('musicBox');
+      musicBox.innerHTML = '';
+      const m = localStorage.getItem(ch.musicKey);
+      if (m) {
+        const audio = document.createElement('audio');
+        audio.controls = true;
+        audio.src = m;
+        musicBox.appendChild(audio);
+      }
+
+      const cont = id('pageContainer');
+      cont.innerHTML = '';
+      if (ch.pages.length === 0){
+        cont.innerHTML = `<p style='color:#888'>No pages yet.</p>`;
+      } else {
+        ch.pages.forEach((p, i) => {
+          const img = document.createElement('img');
+          img.src = p;
+          img.style.width = '100%';
+          img.style.marginBottom = '12px';
+          img.style.borderRadius = '6px';
+          cont.appendChild(img);
+        });
+      }
+
+      current.chapterId = ch.id;
+      current.index = 0;
+    }
+
+    function placeholder(){ return 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400"><rect width="100%" height="100%" fill="#111"/><text x="50%" y="50%" fill="#666" font-size="20" text-anchor="middle" dominant-baseline="middle">No image yet</text></svg>'); }
+
+    /* READER */
+    id('openReader').onclick = () => {
+      const ch = state.find(s => s.id===current.chapterId);
+      if (!ch || ch.pages.length === 0) return;
+      id('readerImg').src = ch.pages[current.index];
+      id('readerTitle').textContent = `${ch.title} — Page ${current.index+1}`;
+      id('readerModal').style.display = 'flex';
+    };
+
+    id('closeReader').onclick = () => id('readerModal').style.display = 'none';
+
+    id('nextBtn').onclick = () => {
+      const ch = state.find(s => s.id===current.chapterId);
+      if (current.index < ch.pages.length-1) current.index++;
+    };
+
+    id('prevBtn').onclick = () => {
+      if (current.index > 0) current.index--;
+    };
+
+    id('backHome').onclick = () => {
+      document.querySelector('[data-tab="home"]').click();
+    };
+
+    /* ADMIN */
+    let isAdmin = false;
+
+    function tryAdminLogin(){
+      const p = prompt("Admin password:");
+      if (p === ADMIN_PASSWORD){
+        isAdmin = true;
+        id('adminArea').style.display = 'block';
+      } else alert("Wrong password");
+    }
+
+    window.addEventListener('keydown', e => {
+      if (e.ctrlKey && e.key.toLowerCase() === 'l') tryAdminLogin();
+    });
+
+    function dataURL(file){ return new Promise(res => { const r=new FileReader(); r.onload=e=>res(e.target.result); r.readAsDataURL(file); }); }
+
+    id('saveUploads').onclick = async () => {
+      if (!isAdmin) return alert("Not admin");
+
+      const ch = state.find(s => s.id === id('adminChapterSelect').value);
+      const images = Array.from(id('imageUpload').files);
+      const music = id('musicUpload').files[0];
+
+      for (const f of images){ ch.pages.push(await dataURL(f)); }
+
+      if (music){ localStorage.setItem(ch.musicKey, await dataURL(music)); }
+
+      saveState(state);
+      alert("Saved!");
+      showChapter(ch.id);
+    };
+
+    id('clearChapter').onclick = () => {
+      if (!isAdmin) return;
+      const ch = state.find(s => s.id === id('adminChapterSelect').value);
+      ch.pages = [];
+      localStorage.removeItem(ch.musicKey);
+      saveState(state);
+      showChapter(ch.id);
+    };
+
+    id('logoutBtn').onclick = () => {
+      isAdmin = false;
+      id('adminArea').style.display = 'none';
+    };
+
+    /* INIT */
+    showHome();
+  </script>
+</body>
+</html>
